@@ -16,7 +16,7 @@ END
 TESTSRCDIR=_build/test/lib/consuela/test
 while [ ! -f "${TESTSRCDIR}/discovery_node_runner.beam" ]; do sleep 1; done
 
-erl \
+exec erl \
     -noshell \
     -noinput \
     -config test/discovery \

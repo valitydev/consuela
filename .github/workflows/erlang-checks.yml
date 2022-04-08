@@ -1,0 +1,33 @@
+name: Erlang CI Checks
+
+on:
+  push:
+    branches:
+      - 'master'
+      - 'epic/**'
+  pull_request:
+    branches: ['**']
+
+jobs:
+  setup:
+    name: Load .env
+    runs-on: ubuntu-latest
+    outputs:
+      otp-version: ${{ steps.otp-version.outputs.version }}
+      rebar-version: ${{ steps.rebar-version.outputs.version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - run: grep -v '^#' .env >> $GITHUB_ENV
+      - id: otp-version
+        run: echo "::set-output name=version::$OTP_VERSION"
+      - id: rebar-version
+        run: echo "::set-output name=version::$REBAR_VERSION"
+
+  run:
+    name: Run checks
+    needs: setup
+    uses: valitydev/erlang-workflows/.github/workflows/erlang-parallel-build.yml@v1.0.1
+    with:
+      otp-version: ${{ needs.setup.outputs.otp-version }}
+      rebar-version: ${{ needs.setup.outputs.rebar-version }}

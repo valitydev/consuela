@@ -1,0 +1,54 @@
+services:
+  consul1: &consul-server
+    image: docker.io/library/consul:$CONSUL_VERSION
+    networks:
+      - consul
+    hostname: consul1
+    command:
+      agent -server -retry-join consul0 -client 0.0.0.0
+
+  consul2:
+    <<: *consul-server
+    hostname: consul2
+
+  consul0:
+    <<: *consul-server
+    hostname: consul0
+    command:
+      agent -server -bootstrap-expect 3 -ui -client 0.0.0.0
+
+  discovery0: &discovery
+    image: docker.io/library/erlang:$OTP_VERSION
+    networks:
+      - consul
+    volumes:
+      - .:/home/keynslug/ws/vality/consuela
+    working_dir:
+      /home/keynslug/ws/vality/consuela
+    command: /bin/bash -c './test/start-discovery-node.sh consul0'
+
+  discovery1:
+    <<: *discovery
+    command: /bin/bash -c './test/start-discovery-node.sh consul1'
+
+  discovery2:
+    <<: *discovery
+    command: /bin/bash -c './test/start-discovery-node.sh consul2'
+
+  testrunner:
+    image: $DEV_IMAGE_TAG
+    build:
+      dockerfile: Dockerfile.dev
+      context: .
+      args:
+        OTP_VERSION: $OTP_VERSION
+    networks:
+      - consul
+    volumes:
+      - .:$PWD
+    working_dir: $PWD
+    command: /usr/local/bin/epmd
+
+networks:
+  consul:
+

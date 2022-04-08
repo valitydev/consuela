@@ -19,4 +19,6 @@ rebar3.crashdump
 *~
 
 /src/consuela_duration.erl
-docker-compose.yml
+
+Makefile.env
+.image.dev
