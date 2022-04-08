@@ -3,7 +3,7 @@
 CONSUL=${1:-consul0}
 HOSTNAME=$(hostname -i | awk '{print $1}')
 NODENAME=${2:-discovery}
-LIFETIME=${3:-90}
+LIFETIME=${3:-120}
 COOKIE=${4:-${NODENAME}}
 
 SCRIPT=$(cat <<END
