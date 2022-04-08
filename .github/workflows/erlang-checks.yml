@@ -31,3 +31,4 @@ jobs:
     with:
       otp-version: ${{ needs.setup.outputs.otp-version }}
       rebar-version: ${{ needs.setup.outputs.rebar-version }}
+      run-ct-with-compose: true
