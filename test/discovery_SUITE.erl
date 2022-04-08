@@ -41,6 +41,7 @@ all() ->
 -spec end_per_suite(config()) -> _.
 
 init_per_suite(C) ->
+    ok = ct_helper:ensure_empd(),
     {ok, #hostent{h_addr_list = [Address | _]}} = inet:gethostbyname(inet_db:gethostname()),
     Nodename = list_to_atom(?MODULE_STRING ++ "@" ++ inet:ntoa(Address)),
     {ok, _Pid} = net_kernel:start([Nodename, longnames]),

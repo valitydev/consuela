@@ -49,6 +49,7 @@ all() ->
 -spec end_per_testcase(test_name(), config()) -> _.
 
 init_per_suite(C) ->
+    ok = ct_helper:ensure_empd(),
     {ok, _Pid} = net_kernel:start([?MODULE, shortnames]),
     true = erlang:set_cookie(node(), ?MODULE),
     Apps = genlib_app:start_application(consuela),

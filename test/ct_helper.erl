@@ -14,6 +14,7 @@
 -export([await_n/3]).
 
 -export([spawn_slacker/0]).
+-export([ensure_empd/0]).
 
 %%
 
@@ -76,3 +77,13 @@ slacker() ->
     receive
     after infinity -> ok
     end.
+
+-spec ensure_empd() -> ok.
+ensure_empd() ->
+    _ = ct:pal("cmd('epmd -daemon'): ~s", [os:cmd("epmd -daemon")]),
+    {ok, _Names} = await(
+        {ok, []},
+        fun erl_epmd:names/0,
+        genlib_retry:linear(5, 500)
+    ),
+    ok.

@@ -64,8 +64,6 @@ services:
         condition: service_started
       discovery2:
         condition: service_started
-    environment:
-      ERL_FLAGS: "-erl_epmd_port 31337"
     networks:
       - consul
     volumes:
