@@ -6,6 +6,12 @@ services:
     hostname: consul1
     command:
       agent -server -retry-join consul0 -client 0.0.0.0
+    healthcheck:
+      test:
+        test $(curl -s 'http://localhost:8500/v1/status/peers' | jq 'length') -eq 3
+      interval: 10s
+      timeout: 5s
+      retries: 12
 
   consul2:
     <<: *consul-server
@@ -19,6 +25,9 @@ services:
 
   discovery0: &discovery
     image: docker.io/library/erlang:$OTP_VERSION
+    depends_on:
+      consul0:
+        condition: service_healthy
     networks:
       - consul
     volumes:
@@ -42,6 +51,21 @@ services:
       context: .
       args:
         OTP_VERSION: $OTP_VERSION
+    depends_on:
+      consul0:
+        condition: service_healthy
+      consul1:
+        condition: service_healthy
+      consul2:
+        condition: service_healthy
+      discovery0:
+        condition: service_started
+      discovery1:
+        condition: service_started
+      discovery2:
+        condition: service_started
+    env:
+      ERL_FLAGS: "-erl_epmd_port 31337"
     networks:
       - consul
     volumes:
