@@ -47,8 +47,8 @@ start_link(ListenerPid, Socket, Transport, Opts) ->
     proxy :: proxy_fun(),
     buffer = <<>> :: binary(),
     remote_endpoint :: any(),
-    remote_socket :: inet:socket(),
-    remote_transport :: module(),
+    remote_socket :: inet:socket() | undefined,
+    remote_transport :: module() | undefined,
     remote_socket_opts = ?DEFAULT_SOCKET_OPTS :: list(gen_tcp:option()),
     timeout :: non_neg_integer()
 }).
@@ -107,7 +107,7 @@ loop(
 start_proxy_loop(State = #state{remote_endpoint = Remote, buffer = Buffer}) ->
     case remote_connect(Remote) of
         {Transport, {ok, Socket}} ->
-            Transport:send(Socket, Buffer),
+            ok = Transport:send(Socket, Buffer),
             proxy_loop(State#state{
                 remote_socket = Socket,
                 remote_transport = Transport,
@@ -127,15 +127,14 @@ proxy_loop(
         remote_socket_opts = ROpts
     }
 ) ->
-    STrans:setopts(SSock, SOpts),
-    RTrans:setopts(RSock, ROpts),
-
+    ok = STrans:setopts(SSock, SOpts),
+    ok = RTrans:setopts(RSock, ROpts),
     receive
         {_, SSock, Data} ->
-            RTrans:send(RSock, Data),
+            ok = RTrans:send(RSock, Data),
             proxy_loop(State);
         {_, RSock, Data} ->
-            STrans:send(SSock, Data),
+            ok = STrans:send(SSock, Data),
             proxy_loop(State);
         {tcp_closed, RSock} ->
             terminate(State);

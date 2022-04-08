@@ -3,7 +3,7 @@
 CONSUL=${1:-consul0}
 HOSTNAME=$(hostname -i | awk '{print $1}')
 NODENAME=${2:-discovery}
-LIFETIME=${3:-90}
+LIFETIME=${3:-120}
 COOKIE=${4:-${NODENAME}}
 
 SCRIPT=$(cat <<END
@@ -16,7 +16,7 @@ END
 TESTSRCDIR=_build/test/lib/consuela/test
 while [ ! -f "${TESTSRCDIR}/discovery_node_runner.beam" ]; do sleep 1; done
 
-erl \
+exec erl \
     -noshell \
     -noinput \
     -config test/discovery \

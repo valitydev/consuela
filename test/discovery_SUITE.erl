@@ -9,7 +9,6 @@
 -module(discovery_SUITE).
 
 -include_lib("common_test/include/ct.hrl").
--include_lib("stdlib/include/assert.hrl").
 
 -type group_name() :: atom().
 -type test_name() :: atom().
@@ -42,6 +41,7 @@ all() ->
 -spec end_per_suite(config()) -> _.
 
 init_per_suite(C) ->
+    ok = ct_helper:ensure_empd(),
     {ok, #hostent{h_addr_list = [Address | _]}} = inet:gethostbyname(inet_db:gethostname()),
     Nodename = list_to_atom(?MODULE_STRING ++ "@" ++ inet:ntoa(Address)),
     {ok, _Pid} = net_kernel:start([Nodename, longnames]),
@@ -57,8 +57,6 @@ end_per_suite(C) ->
 
 %% Definitions
 
--include("ct_helper.hrl").
-
 -spec nodes_discover_themselves(config()) -> _.
 nodes_discover_themselves(C) ->
     N = ?config(n, C),
@@ -73,12 +71,7 @@ nodes_discover_themselves(C) ->
 await_healthy_service(N, Service, Client) ->
     ct_helper:await_n(
         N,
-        fun() ->
-            case consuela_health:get(Service, [], true, Client) of
-                {ok, Hs} -> Hs;
-                Other -> Other
-            end
-        end,
+        fun() -> genlib:unwrap(consuela_health:get(Service, [], true, Client)) end,
         genlib_retry:linear(3, 5000)
     ).
 

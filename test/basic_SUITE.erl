@@ -205,8 +205,8 @@ multiple_names_ok(C) ->
 
 conflicting_registration_fails(C) ->
     Ref = ?config(registry, C),
-    Pid1 = spawn_slacker(),
-    Pid2 = spawn_slacker(),
+    Pid1 = ct_helper:spawn_slacker(),
+    Pid2 = ct_helper:spawn_slacker(),
     _ = ?assertEqual(ok, register(Ref, my_boy, Pid1)),
     _ = ?assertEqual({error, exists}, register(Ref, my_boy, Pid2)),
     _ = ?assertEqual(ok, register(Ref, my_boy, Pid1)),
@@ -236,7 +236,7 @@ conflicting_unregistration_fails(C) ->
 
 dead_registration_cleaned(C) ->
     Ref = ?config(registry, C),
-    Pid = spawn_slacker(),
+    Pid = ct_helper:spawn_slacker(),
     _ = ?assertEqual(ok, register(Ref, my_boy, Pid)),
     ok = stop_slacker(Pid),
     _ = ct_helper:await({error, notfound}, fun() -> lookup(Ref, my_boy) end),
@@ -246,7 +246,7 @@ dead_registration_cleaned(C) ->
 registrations_select_ok(C) ->
     N = 10,
     Ref = ?config(registry, C),
-    Slackers = [Slacker | _] = [{{id, I}, spawn_slacker()} || I <- lists:seq(1, N)],
+    Slackers = [Slacker | _] = [{{id, I}, ct_helper:spawn_slacker()} || I <- lists:seq(1, N)],
     _ = [?assertEqual(ok, register(Ref, I, Pid)) || {I, Pid} <- Slackers],
     _ = ?assertEqual(Slackers, lists:sort(consuela_registry_server:select(Ref, '_'))),
     _ = ?assertEqual(Slackers, lists:sort(consuela_registry_server:select(Ref, {id, '_'}))),
@@ -279,13 +279,6 @@ no_registry_exits(_C) ->
     _ = ?assertExit({consuela, registry_terminated}, unregister(Ref, my_boy, self())),
     _ = ?assertExit({consuela, registry_terminated}, lookup(Ref, my_boy)).
 
-spawn_slacker() ->
-    erlang:spawn_link(fun() ->
-        receive
-        after infinity -> ok
-        end
-    end).
-
 stop_slacker(Pid) ->
     ct_helper:stop_linked(Pid, shutdown).
 
@@ -312,7 +305,7 @@ change_proxy_mode(Mode, C) ->
     (consuela_client:beat(), {client, category()}) -> ok;
     (consuela_session_keeper:beat(), {keeper, category()}) -> ok;
     (consuela_zombie_reaper:beat(), {reaper, category()}) -> ok;
-    (consuela_registry:beat(), {registry, category()}) -> ok.
+    (consuela_registry_server:beat(), {registry, category()}) -> ok.
 handle_beat(Beat, {Producer, Category}) ->
     ct:pal(Category, "[~p] ~p", [Producer, Beat]);
 handle_beat(_Beat, _) ->

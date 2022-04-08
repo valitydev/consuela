@@ -1,0 +1,10 @@
+ARG OTP_VERSION
+
+FROM docker.io/library/erlang:${OTP_VERSION}
+
+# Set env
+ENV CHARSET=UTF-8
+ENV LANG=C.UTF-8
+
+# Set runtime
+CMD ["/bin/bash"]

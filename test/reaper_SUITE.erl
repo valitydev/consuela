@@ -109,7 +109,7 @@ end_per_testcase(_Name, C) ->
 
 zombie_reaping_succeeded(C) ->
     Ref = ?config(registry, C),
-    Pid = spawn_slacker(),
+    Pid = ct_helper:spawn_slacker(),
     _ = ?assertEqual(ok, register(Ref, boi, Pid)),
     ok = change_proxy_mode(pass, stop, C),
     _ = ?assertEqual({ok, Pid}, lookup(Ref, boi)),
@@ -125,7 +125,7 @@ zombie_reaping_succeeded(C) ->
 reaper_dies_eventually(C) ->
     Ref = ?config(registry, C),
     Sup = ?config(registry_sup, C),
-    Pid = spawn_slacker(),
+    Pid = ct_helper:spawn_slacker(),
     Flag = erlang:process_flag(trap_exit, true),
     _ = ?assertEqual(ok, register(Ref, boi, Pid)),
     ok = change_proxy_mode(pass, stop, C),
@@ -147,7 +147,7 @@ reaper_dies_eventually(C) ->
 reaper_queue_drains_eventually(C) ->
     N = 20,
     Ref = ?config(registry, C),
-    Slackers = [{I, spawn_slacker()} || I <- lists:seq(1, N)],
+    Slackers = [{I, ct_helper:spawn_slacker()} || I <- lists:seq(1, N)],
     _ = genlib_pmap:map(
         fun({I, Pid}) -> ?assertEqual(ok, register(Ref, I, Pid)) end,
         Slackers
@@ -178,13 +178,6 @@ register(Ref, Name, Pid) ->
 lookup(Ref, Name) ->
     consuela_registry_server:lookup(Ref, Name).
 
-spawn_slacker() ->
-    erlang:spawn_link(fun() ->
-        receive
-        after infinity -> ok
-        end
-    end).
-
 stop_slacker(Pid) ->
     ct_helper:stop_linked(Pid, shutdown).
 
@@ -203,7 +196,7 @@ change_proxy_mode(ModeWas, Mode, C) ->
     (consuela_client:beat(), {client, opts()}) -> ok;
     (consuela_session_keeper:beat(), {keeper, opts()}) -> ok;
     (consuela_zombie_reaper:beat(), {reaper, opts()}) -> ok;
-    (consuela_registry:beat(), {registry, opts()}) -> ok.
+    (consuela_registry_server:beat(), {registry, opts()}) -> ok.
 handle_beat(Beat, {Producer, Opts}) ->
     genlib_map:foreach(
         fun

@@ -129,7 +129,7 @@ mk_ref(Name) ->
 
 -type st() :: _.
 
--spec init(st()) -> st().
+-spec init(st()) -> {ok, st()}.
 init(St) ->
     {ok, St}.
 
@@ -163,7 +163,7 @@ code_change(_OldVsn, St, _Extra) ->
     (consuela_client:beat(), {client, category()}) -> ok;
     (consuela_session_keeper:beat(), {keeper, category()}) -> ok;
     (consuela_zombie_reaper:beat(), {reaper, category()}) -> ok;
-    (consuela_registry:beat(), {registry, category()}) -> ok.
+    (consuela_registry_server:beat(), {registry, category()}) -> ok.
 handle_beat(Beat, {Producer, Category}) ->
     ct:pal(Category, "[~p] ~p ~p", [Producer, self(), Beat]);
 handle_beat(_Beat, _) ->
