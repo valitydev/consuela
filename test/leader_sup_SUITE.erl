@@ -202,7 +202,7 @@ mk_pulse(Producer) ->
     (consuela_client:beat(), {client, opts()}) -> ok;
     (consuela_session_keeper:beat(), {keeper, opts()}) -> ok;
     (consuela_zombie_reaper:beat(), {reaper, opts()}) -> ok;
-    (consuela_registry:beat(), {registry, opts()}) -> ok.
+    (consuela_registry_server:beat(), {registry, opts()}) -> ok.
 handle_beat(Beat, {Producer, Opts}) ->
     genlib_map:foreach(
         fun

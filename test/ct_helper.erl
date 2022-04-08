@@ -13,6 +13,8 @@
 -export([await_n/2]).
 -export([await_n/3]).
 
+-export([spawn_slacker/0]).
+
 %%
 
 -spec stop_linked(pid(), _Reason) -> ok.
@@ -61,4 +63,16 @@ await(Expect, Extract, Compute, Retry0) ->
                 finish ->
                     ?assertEqual(Expect, NotYet)
             end
+    end.
+
+%%
+
+-spec spawn_slacker() -> pid().
+spawn_slacker() ->
+    erlang:spawn_link(fun slacker/0).
+
+-spec slacker() -> no_return().
+slacker() ->
+    receive
+    after infinity -> ok
     end.
