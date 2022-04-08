@@ -31,9 +31,9 @@ services:
     networks:
       - consul
     volumes:
-      - .:/home/keynslug/ws/vality/consuela
+      - .:$PWD
     working_dir:
-      /home/keynslug/ws/vality/consuela
+      $PWD
     command: /bin/bash -c './test/start-discovery-node.sh consul0'
 
   discovery1:
