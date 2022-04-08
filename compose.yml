@@ -8,7 +8,7 @@ services:
       agent -server -retry-join consul0 -client 0.0.0.0
     healthcheck:
       test:
-        test $(curl -s 'http://localhost:8500/v1/status/peers' | jq 'length') -eq 3
+        test $$(curl -s 'http://localhost:8500/v1/status/peers' | jq 'length') -eq 3
       interval: 10s
       timeout: 5s
       retries: 12
@@ -64,7 +64,7 @@ services:
         condition: service_started
       discovery2:
         condition: service_started
-    env:
+    environment:
       ERL_FLAGS: "-erl_epmd_port 31337"
     networks:
       - consul
