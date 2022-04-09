@@ -178,7 +178,7 @@ decode_session(#{
     <<"Name">> := Name,
     <<"Node">> := Node,
     <<"Behavior">> := Behavior,
-    <<"Checks">> := Checks,
+    <<"NodeChecks">> := Checks,
     <<"TTL">> := TTL,
     <<"LockDelay">> := LockDelay,
     <<"CreateIndex">> := CreateIndex,
