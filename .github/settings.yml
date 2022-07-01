@@ -1,0 +1,46 @@
+# These settings are synced to GitHub by https://probot.github.io/apps/settings/
+_extends: .github
+
+teams:
+  - name: devs
+    permission: push
+  - name: bots
+    permission: push
+  - name: maintainers
+    permission: push
+  - name: erlang
+    permission: maintain
+
+branches:
+  - name: "master"
+    # https://developer.github.com/v3/repos/branches/#update-branch-protection
+    # Branch Protection settings. Set to null to disable
+    protection:
+      required_pull_request_reviews:
+        required_approving_review_count: 1
+        dismiss_stale_reviews: false
+        require_code_owner_reviews: true
+        dismissal_restrictions: {}
+      required_status_checks:
+        strict: true
+        checks:
+          - context: "Load .env"
+            app_id: 15368
+          - context: "Run checks / Build"
+            app_id: 15368
+          - context: "Run checks / Check"
+            app_id: 15368
+          - context: "Run checks / Dialyze"
+            app_id: 15368
+          - context: "Run checks / Test"
+            app_id: 15368
+          - context: "codecov/patch"
+            app_id: 254
+          - context: "codecov/project"
+            app_id: 254
+      enforce_admins: false
+      required_conversation_resolution: false
+      required_linear_history: true
+      restrictions: null
+      allow_force_pushes: false
+      allow_deletions: false
