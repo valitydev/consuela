@@ -1,0 +1,10 @@
+name: Vality basic linters
+
+on:
+  pull_request:
+    branches:
+      - "*"
+
+jobs:
+  lint:
+    uses: valitydev/base-workflows/.github/workflows/basic-linters.yml@v1
