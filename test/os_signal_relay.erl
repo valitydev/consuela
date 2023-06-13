@@ -64,7 +64,7 @@ handle_event(Signal, St) ->
 handle_call(_Request, St) ->
     {ok, ok, St}.
 
--spec handle_info(_Info, st()) -> {noreply, st()}.
+-spec handle_info(_Info, st()) -> {ok, st()}.
 handle_info(_Info, St) ->
     {ok, St}.
 

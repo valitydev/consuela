@@ -49,6 +49,7 @@ all() ->
 -spec end_per_testcase(test_name(), config()) -> _.
 
 init_per_suite(C) ->
+    ok = ct_helper:ensure_empd(),
     {ok, _Pid} = net_kernel:start([?MODULE, shortnames]),
     true = erlang:set_cookie(node(), ?MODULE),
     Apps = genlib_app:start_application(consuela),
@@ -202,7 +203,7 @@ mk_pulse(Producer) ->
     (consuela_client:beat(), {client, opts()}) -> ok;
     (consuela_session_keeper:beat(), {keeper, opts()}) -> ok;
     (consuela_zombie_reaper:beat(), {reaper, opts()}) -> ok;
-    (consuela_registry:beat(), {registry, opts()}) -> ok.
+    (consuela_registry_server:beat(), {registry, opts()}) -> ok.
 handle_beat(Beat, {Producer, Opts}) ->
     genlib_map:foreach(
         fun

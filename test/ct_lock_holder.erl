@@ -21,12 +21,12 @@
 
 -type nodename() :: consuela_session:nodename().
 -type ttl() :: consuela_session:ttl().
--type lock() :: consuela_lock:t().
+-type lock() :: consuela_lock:lock().
 -type client() :: consuela_client:t().
 
 -spec start_link(_Name, nodename(), ttl(), client()) -> {ok, pid()}.
 start_link(Name, Nodename, TTL, Client) ->
-    gen_server:start_link(?MODULE, #{name => Name, node => Nodename, ttl => TTL, client => Client}, []).
+    gen_server:start_link(?MODULE, {Name, Nodename, TTL, #{client => Client}}, []).
 
 -spec get(_Name, client()) -> {ok, lock()} | {error, notfound}.
 get(Name, Client) ->
@@ -35,22 +35,19 @@ get(Name, Client) ->
 %%
 
 -type st() :: #{
-    name := _,
-    node := nodename(),
-    ttl := ttl(),
     client := client(),
-    session => consuela_session:t(),
-    lock => consuela_lock:t()
+    session => consuela_session:id(),
+    lock => consuela_lock:lock()
 }.
 
--spec init(st()) -> {ok, st()}.
-init(St = #{name := Name, node := Nodename, ttl := TTL, client := Client}) ->
+-spec init({_Name, nodename(), ttl(), st()}) -> {ok, st()}.
+init({Name, Nodename, TTL, St = #{client := Client}}) ->
     _Was = erlang:process_flag(trap_exit, true),
-    {ok, Session} = consuela_session:create(genlib:to_binary(Name), Nodename, TTL, Client),
+    {ok, SessionID} = consuela_session:create(genlib:to_binary(Name), Nodename, TTL, Client),
     LockID = {<<?MODULE_STRING>>, Name},
-    ok = consuela_lock:hold(LockID, self(), Session, Client),
+    ok = consuela_lock:hold(LockID, self(), SessionID, Client),
     {ok, Lock} = consuela_lock:get(LockID, Client),
-    {ok, St#{session => Session, lock => Lock}}.
+    {ok, St#{session => SessionID, lock => Lock}}.
 
 -spec handle_call(_Call, _From, st()) -> {noreply, st()}.
 handle_call(_Call, _From, St) ->
@@ -65,9 +62,9 @@ handle_info(_Info, St) ->
     {noreply, St}.
 
 -spec terminate(_Reason, st()) -> _.
-terminate(_Reason, _St = #{lock := Lock, session := Session, client := Client}) ->
+terminate(_Reason, _St = #{lock := Lock, session := SessionID, client := Client}) ->
     ok = consuela_lock:delete(Lock, Client),
-    ok = consuela_session:destroy(Session, Client),
+    ok = consuela_session:destroy(SessionID, Client),
     ok.
 
 -spec code_change(_Vsn | {down, _Vsn}, st(), _Extra) -> {ok, st()}.

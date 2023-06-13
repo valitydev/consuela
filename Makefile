@@ -1,61 +1,119 @@
-REBAR := $(shell which rebar3 2>/dev/null || which ./rebar3)
+# HINT
+# Use this file to override variables here.
+# For example, to run with podman put `DOCKER=podman` there.
+-include Makefile.env
 
-UTILS_PATH := build-utils
-TEMPLATES_PATH := .
+# NOTE
+# Variables specified in `.env` file are used to pick and setup specific
+# component versions, both when building a development image and when running
+# CI workflows on GH Actions. This ensures that tasks run with `wc-` prefix
+# (like `wc-dialyze`) are reproducible between local machine and CI runners.
+DOTENV := $(shell grep -v '^\#' .env)
 
-SERVICE_NAME := consuela
+REBAR ?= rebar3
+DOCKER ?= docker
+DOCKERCOMPOSE ?= docker-compose
+TEST_CONTAINER_NAME ?= testrunner
 
-# Build image tag to be used
-BUILD_IMAGE_NAME := build-erlang
-BUILD_IMAGE_TAG := 52042cbce455154e1128f6ce2e7af0aa58a854d7
+# Development images
+DEV_IMAGE_TAG = consuela-dev
+DEV_IMAGE_ID = $(file < .image.dev)
 
-CALL_ANYWHERE := all submodules compile xref lint dialyze clean distclean format check_format
-CALL_W_CONTAINER := $(CALL_ANYWHERE) test
+DOCKERCOMPOSE_W_ENV = DEV_IMAGE_TAG=$(DEV_IMAGE_TAG) $(DOCKERCOMPOSE)
 
 all: compile
 
--include $(UTILS_PATH)/make_lib/utils_container.mk
+.PHONY: dev-image clean-dev-image wc-shell test
 
-.PHONY: $(CALL_W_CONTAINER)
+dev-image: .image.dev
 
-submodules:
-	@if git submodule status | egrep -q '^[-]|^[+]'; then git submodule update --init; fi
+.image.dev: Dockerfile.dev .env
+	$(DOCKERCOMPOSE_W_ENV) build $(TEST_CONTAINER_NAME)
+	$(DOCKER) image ls -q -f "reference=$(DEV_IMAGE_TAG)" | head -n1 > $@
 
-compile: submodules
+clean-dev-image:
+ifneq ($(DEV_IMAGE_ID),)
+	$(DOCKER) image rm -f $(DEV_IMAGE_TAG)
+	rm .image.dev
+endif
+
+DOCKER_WC_OPTIONS := -v $(PWD):$(PWD) --workdir $(PWD)
+DOCKER_WC_EXTRA_OPTIONS ?= --rm
+DOCKER_RUN = $(DOCKER) run -t $(DOCKER_WC_OPTIONS) $(DOCKER_WC_EXTRA_OPTIONS)
+DOCKERCOMPOSE_RUN = $(DOCKERCOMPOSE_W_ENV) run --rm $(DOCKER_WC_OPTIONS)
+
+# Utility tasks
+
+wc-shell: dev-image
+	$(DOCKER_RUN) --interactive --tty $(DEV_IMAGE_TAG)
+
+wc-%: dev-image
+	$(DOCKER_RUN) $(DEV_IMAGE_TAG) make $*
+
+wdeps-shell: dev-image
+	$(DOCKERCOMPOSE_W_ENV) up -d; \
+	$(DOCKERCOMPOSE_W_ENV) exec $(TEST_CONTAINER_NAME) su; \
+	$(DOCKERCOMPOSE_W_ENV) down
+
+wdeps-%: dev-image
+	$(DOCKERCOMPOSE_RUN) -T $(TEST_CONTAINER_NAME) make $*; \
+	res=$$?; \
+	$(DOCKERCOMPOSE_W_ENV) down; \
+	exit $$res
+
+# Rebar tasks
+
+rebar-shell:
+	$(REBAR) shell
+
+compile:
 	$(REBAR) compile
 
-xref: submodules
+xref:
 	$(REBAR) xref
 
 lint:
 	$(REBAR) lint
 
-check_format:
+check-format:
 	$(REBAR) fmt -c
+
+dialyze:
+	$(REBAR) as test dialyzer
+
+release:
+	$(REBAR) as prod release
+
+eunit:
+	$(REBAR) eunit --cover
+
+common-test:
+	$(REBAR) ct --cover
+
+cover:
+	$(REBAR) covertool generate
 
 format:
 	$(REBAR) fmt -w
 
-dialyze: submodules
-	$(REBAR) dialyzer
-
 clean:
 	$(REBAR) clean
 
-distclean:
+distclean: clean-build-image
 	rm -rf _build
 
-test: submodules
-	$(REBAR) eunit
-	$(REBAR) ct
+test: eunit common-test
 
 TESTSUITES = $(wildcard test/*_SUITE.erl)
 
 define testsuite
 
-test.$(patsubst %_SUITE.erl,%,$(notdir $(1))): $(1) submodules
-	$(REBAR) ct --suite=$$<
+test.$(patsubst %_SUITE.erl,%,$(notdir $(1))): $(1)
+	$(REBAR) ct --cover --suite=$$<
 
 endef
 
 $(foreach suite,$(TESTSUITES),$(eval $(call testsuite,$(suite))))
+
+cover-report:
+	$(REBAR) cover

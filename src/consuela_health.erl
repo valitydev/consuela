@@ -270,20 +270,22 @@ decode_node(#{
         }
     }).
 
-decode_service(#{
-    <<"ID">> := ID,
-    <<"Service">> := Service,
-    <<"Tags">> := Tags,
-    <<"Address">> := Address,
-    <<"Port">> := Port,
-    <<"Meta">> := Meta,
-    <<"CreateIndex">> := CreateIndex,
-    <<"ModifyIndex">> := ModifyIndex
-    % TODO
-    % <<"Weights">> := Weights,
-    % <<"Proxy">> := Proxy,
-    % <<"Connect">> := Connect
-}) ->
+decode_service(
+    #{
+        <<"ID">> := ID,
+        <<"Service">> := Service,
+        <<"Tags">> := Tags,
+        <<"Address">> := Address,
+        <<"Meta">> := Meta,
+        <<"CreateIndex">> := CreateIndex,
+        <<"ModifyIndex">> := ModifyIndex
+        % TODO
+        % <<"Weights">> := Weights,
+        % <<"Proxy">> := Proxy,
+        % <<"Connect">> := Connect
+    } = V
+) ->
+    Port = maps:get(<<"Port">>, V, 0),
     decode_meta(Meta, #{
         id => decode_id(ID),
         name => decode_servicename(Service),

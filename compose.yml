@@ -1,0 +1,76 @@
+services:
+  consul1: &consul-server
+    image: docker.io/library/consul:$CONSUL_VERSION
+    networks:
+      - consul
+    hostname: consul1
+    command:
+      agent -server -retry-join consul0 -client 0.0.0.0
+    healthcheck:
+      test:
+        test $$(curl -s 'http://localhost:8500/v1/status/peers' | jq 'length') -eq 3
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  consul2:
+    <<: *consul-server
+    hostname: consul2
+
+  consul0:
+    <<: *consul-server
+    hostname: consul0
+    command:
+      agent -server -bootstrap-expect 3 -ui -client 0.0.0.0
+
+  discovery0: &discovery
+    image: docker.io/library/erlang:$OTP_VERSION
+    depends_on:
+      consul0:
+        condition: service_healthy
+    networks:
+      - consul
+    volumes:
+      - .:$PWD
+    working_dir:
+      $PWD
+    command: /bin/bash -c './test/start-discovery-node.sh consul0'
+
+  discovery1:
+    <<: *discovery
+    command: /bin/bash -c './test/start-discovery-node.sh consul1'
+
+  discovery2:
+    <<: *discovery
+    command: /bin/bash -c './test/start-discovery-node.sh consul2'
+
+  testrunner:
+    image: $DEV_IMAGE_TAG
+    build:
+      dockerfile: Dockerfile.dev
+      context: .
+      args:
+        OTP_VERSION: $OTP_VERSION
+    depends_on:
+      consul0:
+        condition: service_healthy
+      consul1:
+        condition: service_healthy
+      consul2:
+        condition: service_healthy
+      discovery0:
+        condition: service_started
+      discovery1:
+        condition: service_started
+      discovery2:
+        condition: service_started
+    networks:
+      - consul
+    volumes:
+      - .:$PWD
+    working_dir: $PWD
+    command: /usr/local/bin/epmd
+
+networks:
+  consul:
+
