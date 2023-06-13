@@ -82,7 +82,7 @@
 % TODO too short?
 -define(REGISTRATION_ETC, 100).
 % TODO too short?
--define(REGISTRATION_TIMEOUT, 1000).
+-define(REGISTRATION_TIMEOUT, 2000).
 
 -type ref() :: atom().
 
@@ -99,11 +99,11 @@ start_link(Ref, Registry, ReaperRef, Opts) ->
 
 -spec register(ref(), name(), pid()) -> ok | {error, exists}.
 register(Ref, Name, Pid) when is_pid(Pid) ->
-    handle_result(deadline_call(Ref, {register, {Name, Pid}}, ?REGISTRATION_ETC, ?REGISTRATION_TIMEOUT)).
+    handle_result(deadline_call(Ref, {register, {Name, Pid}}, ?REGISTRATION_ETC, registration_timeout())).
 
 -spec unregister(ref(), name(), pid()) -> ok | {error, notfound}.
 unregister(Ref, Name, Pid) when is_pid(Pid) ->
-    handle_result(deadline_call(Ref, {unregister, {Name, Pid}}, ?REGISTRATION_ETC, ?REGISTRATION_TIMEOUT)).
+    handle_result(deadline_call(Ref, {unregister, {Name, Pid}}, ?REGISTRATION_ETC, registration_timeout())).
 
 -spec lookup(ref(), name()) -> {ok, pid()} | {error, notfound}.
 lookup(Ref, Name) ->
@@ -478,3 +478,6 @@ handle_beat(Beat, [trace]) ->
     logger:debug("[~p] ~p", [?MODULE, Beat]);
 handle_beat(_Beat, []) ->
     ok.
+
+registration_timeout() ->
+    genlib_app:env(consuela, registration_timeout, ?REGISTRATION_TIMEOUT).
