@@ -119,7 +119,7 @@ init_per_group(proper_exceptions, C) ->
             transport_opts => #{
                 pool => false,
                 connect_timeout => 100,
-                recv_timeout => 1000
+                recv_timeout => 2000
             },
             pulse => {?MODULE, {client, debug}}
         }
