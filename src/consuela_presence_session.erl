@@ -139,8 +139,8 @@ init(St = #{name := Name}) ->
     {ok, St, hibernate}.
 
 -spec handle_call(_Call, from(), st()) -> {reply, _, st(), hibernate} | {noreply, st(), hibernate}.
-handle_call(get_check_id, _From, St = #{id := ServiceID}) ->
-    {reply, mk_check_name(ServiceID), St, hibernate};
+handle_call(get_check_id, _From, St = #{id := ServiceID, server := {_, Port}}) ->
+    {reply, mk_check_name([ServiceID, integer_to_binary(Port)]), St, hibernate};
 handle_call(Call, From, St) ->
     _ = beat({unexpected, {{call, From}, Call}}, St),
     {noreply, St, hibernate}.
@@ -185,7 +185,7 @@ register_service(
         },
         checks => [
             #{
-                id => mk_check_name(ServiceID),
+                id => mk_check_name([ServiceID, integer_to_binary(Port)]),
                 name => mk_check_name(Name),
                 type => {tcp, {Address, Port}, Interval},
                 initial => passing
@@ -195,13 +195,15 @@ register_service(
             }
         ]
     },
-    ok = consuela_health:register(ServiceParams, Client),
+    ok = consuela_health:register(ServiceParams, Client, idempotent),
     ok.
 
 deregister_service(#{id := ServiceID, client := Client}) ->
     ok = consuela_health:deregister(ServiceID, Client),
     ok.
 
+mk_check_name(Name) when is_list(Name) ->
+    mk_check_name(iolist_to_binary(lists:join($:, Name)));
 mk_check_name(Name) ->
     <<Name/binary, ":presence:tcp">>.
 
