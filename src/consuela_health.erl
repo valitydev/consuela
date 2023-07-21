@@ -65,6 +65,7 @@
 
 -export([get/4]).
 -export([register/2]).
+-export([register/3]).
 -export([deregister/2]).
 
 %%
@@ -99,9 +100,20 @@ get(ServiceName, Tags, Passing, Client) ->
     initial => status()
 }.
 
+-type registration_type() :: default | idempotent.
+
 -spec register(service_params(), consuela_client:t()) -> ok.
 register(ServiceParams, Client) ->
-    Resource = <<"/v1/agent/service/register">>,
+    register(ServiceParams, Client, default).
+
+-spec register(service_params(), consuela_client:t(), registration_type()) -> ok.
+register(ServiceParams, Client, default) ->
+    do_register([], ServiceParams, Client);
+register(ServiceParams, Client, idempotent) ->
+    do_register([{<<"replace-existing-checks">>, true}], ServiceParams, Client).
+
+do_register(QueryParams, ServiceParams, Client) ->
+    Resource = {<<"/v1/agent/service/register">>, QueryParams},
     Content = encode_service_params(ServiceParams),
     case consuela_client:request(put, Resource, Content, Client) of
         {ok, undefined} ->
