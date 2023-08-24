@@ -7,6 +7,8 @@
 
 -type name() :: consuela_registry:name().
 
+-export([test/0]).
+
 -export([all/0]).
 -export([select/1]).
 
@@ -15,6 +17,10 @@
 -export([whereis_name/1]).
 
 %%
+
+-spec test() -> ok | {error, Reason :: term()}.
+test() ->
+    consuela_registry_server:test(consuela).
 
 -spec all() -> [{name(), pid()}].
 all() ->
