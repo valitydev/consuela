@@ -65,16 +65,18 @@ new(Namespace, Session, Client) ->
 test(TestKey, Registry = #{session := #{id := Sid}, client := Client}) ->
     TestValue = ok,
     ID = mk_lock_id(TestKey, Registry),
-    try consuela_lock:hold(ID, TestValue, Sid, Client) of
-        ok ->
-            case consuela_lock:get(ID, Client) of
-                {ok, Lock = #{value := TestValue, session := Sid}} ->
-                    {done, consuela_lock:delete(Lock, Client)};
-                {error, notfound} ->
-                    {done, ok}
-            end;
-        {error, failed} ->
-            {done, {error, exists}}
+    try
+        case consuela_lock:hold(ID, TestValue, Sid, Client) of
+            ok ->
+                case consuela_lock:get(ID, Client) of
+                    {ok, Lock = #{value := TestValue, session := Sid}} ->
+                        {done, consuela_lock:delete(Lock, Client)};
+                    {error, notfound} ->
+                        {done, ok}
+                end;
+            {error, failed} ->
+                {done, {error, exists}}
+        end
     catch
         error:{Class, Reason} when Class == failed; Class == unknown ->
             {failed, {Class, Reason}}
