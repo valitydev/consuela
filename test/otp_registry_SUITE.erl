@@ -19,6 +19,7 @@
 -export([start_stop_works/1]).
 -export([conflict_gives_already_started/1]).
 -export([instant_reregister_succeeds/1]).
+-export([registry_test_succeeds/1]).
 
 %% Pulse
 
@@ -45,6 +46,7 @@ all() ->
         nonexistent_gives_noproc,
         start_stop_works,
         conflict_gives_already_started,
+        registry_test_succeeds,
 
         {group, instant_reregister, [{repeat, 10}]}
     ].
@@ -85,6 +87,7 @@ end_per_suite(C) ->
 -spec start_stop_works(config()) -> _.
 -spec conflict_gives_already_started(config()) -> _.
 -spec instant_reregister_succeeds(config()) -> _.
+-spec registry_test_succeeds(config()) -> _.
 
 nonexistent_gives_noproc(_C) ->
     ?assertEqual({error, noproc}, try_call(mk_ref(noone), say)).
@@ -113,6 +116,9 @@ instant_reregister_succeeds(_C) ->
     ok = timer:sleep(1),
     ?assertMatch({ok, _}, gen_server:start(Ref, ?MODULE, undefined, [])),
     ?assertEqual(stopped, gen_server:call(Ref, stop)).
+
+registry_test_succeeds(_C) ->
+    ?assertMatch(ok, consuela:test()).
 
 try_call(Ref, Call) ->
     try gen_server:call(Ref, Call) of

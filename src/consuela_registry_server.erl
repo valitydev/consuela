@@ -33,6 +33,7 @@
 -type rid() :: consuela_registry:rid().
 
 -export([start_link/4]).
+-export([test/1]).
 
 -export([register/3]).
 -export([unregister/3]).
@@ -96,6 +97,11 @@
 -spec start_link(ref(), consuela_registry:t(), consuela_zombie_reaper:ref(), opts()) -> {ok, pid()}.
 start_link(Ref, Registry, ReaperRef, Opts) ->
     gen_server:start_link({local, Ref}, ?MODULE, {Ref, Registry, ReaperRef, Opts}, []).
+
+-spec test(ref()) -> ok | {error, Reason :: term()}.
+test(Ref) ->
+    Name = <<"test", (integer_to_binary(erlang:unique_integer()))/binary>>,
+    handle_result(deadline_call(Ref, {test, {Name, self()}}, ?REGISTRATION_ETC, registration_timeout())).
 
 -spec register(ref(), name(), pid()) -> ok | {error, exists}.
 register(Ref, Name, Pid) when is_pid(Pid) ->
@@ -193,7 +199,7 @@ init({Ref, Registry, ReaperRef, Opts}) ->
     {ok, St}.
 
 -type call() ::
-    {register | unregister, {name(), pid()}}.
+    {test | register | unregister, {name(), pid()}}.
 
 -type result() :: {done, _Done} | {failed, _Failed}.
 
@@ -215,7 +221,9 @@ handle_call(Call, From, St) ->
     {noreply, St}.
 
 -spec handle_regular_call(call(), from(), st()) -> {reply, _Result, st()}.
-handle_regular_call({Action, Association}, _From, St0) when Action == register; Action == unregister ->
+handle_regular_call({Action, Association}, _From, St0) when
+    Action == test orelse Action == register orelse Action == unregister
+->
     {Result, St1} = handle_activity(Action, Association, St0),
     {reply, Result, St1}.
 
@@ -255,6 +263,8 @@ handle_activity(Action, {Name, Pid} = Association, St0) ->
     _ = beat({Subject, started}, St0),
     {Result, St1} =
         case Action of
+            test ->
+                handle_test(Name, St0);
             register ->
                 handle_register(Name, Pid, St0);
             unregister ->
@@ -268,6 +278,9 @@ handle_activity(Action, {Name, Pid} = Association, St0) ->
                 beat({Subject, Result}, St1)
         end,
     {Result, St1}.
+
+handle_test(TestKey, St = #{registry := Registry}) ->
+    {consuela_registry:test(TestKey, Registry), St}.
 
 handle_register(Name, Pid, St) ->
     case lookup_local_store(Name, St) of

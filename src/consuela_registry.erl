@@ -26,6 +26,8 @@
 
 -export([new/3]).
 
+-export([test/2]).
+
 -export([register/2]).
 -export([unregister/2]).
 -export([lookup/2]).
@@ -52,11 +54,33 @@ new(Namespace, Session, Client) ->
 -type result(T) ::
     {done, T} | {failed, failure()}.
 
+-spec test(reg(), t()) -> result(ok | {error, Reason :: term()}).
+
 -spec register(reg(), t()) -> result(ok | {error, exists}).
 
 -spec unregister(reg(), t()) -> result(ok | {error, stale}).
 
 -spec lookup(name(), t()) -> result({ok, pid()} | {error, notfound}).
+
+test(TestKey, Registry = #{session := #{id := Sid}, client := Client}) ->
+    TestValue = ok,
+    ID = mk_lock_id(TestKey, Registry),
+    try
+        case consuela_lock:hold(ID, TestValue, Sid, Client) of
+            ok ->
+                case consuela_lock:get(ID, Client) of
+                    {ok, Lock = #{value := TestValue, session := Sid}} ->
+                        {done, consuela_lock:delete(Lock, Client)};
+                    {error, notfound} ->
+                        {done, ok}
+                end;
+            {error, failed} ->
+                {done, {error, exists}}
+        end
+    catch
+        error:{Class, Reason} when Class == failed; Class == unknown ->
+            {failed, {Class, Reason}}
+    end.
 
 register({Rid, Name, Pid}, Registry = #{session := #{id := Sid}, client := Client}) ->
     ID = mk_lock_id(Name, Registry),
